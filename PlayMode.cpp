@@ -51,6 +51,17 @@ PlayMode::PlayMode() : scene(*phonebank_scene)
 		{
 			goal = &transform;
 		}
+		// else if (transform.name == "Enemy")
+		// {
+		// 	enemy = &transform;
+		// }
+		// else if (transform.name == "Bullet")
+		// {
+		// 	Bullet temp_bullet;
+		// 	temp_bullet.transform = &transform;
+		// 	bullet->transform = temp_bullet.transform;
+		// 	bullet->current_time = 0;
+		// }
 	}
 	// create a player transform:
 	scene.transforms.emplace_back();
@@ -170,111 +181,119 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed)
 {
-	// player walking:
+	if (!win)
 	{
-		// combine inputs into a move:
-		constexpr float PlayerSpeed = 3.0f;
-		glm::vec2 move = glm::vec2(0.0f);
-		if (left.pressed && !right.pressed)
-			move.x = -1.0f;
-		if (!left.pressed && right.pressed)
-			move.x = 1.0f;
-		if (down.pressed && !up.pressed)
-			move.y = -1.0f;
-		if (!down.pressed && up.pressed)
-			move.y = 1.0f;
-
-		// make it so that moving diagonally doesn't go faster:
-		if (move != glm::vec2(0.0f))
-			move = glm::normalize(move) * PlayerSpeed * elapsed;
-
-		// get move in world coordinate system:
-		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
-
-		// using a for() instead of a while() here so that if walkpoint gets stuck in
-		//  some awkward case, code will not infinite loop:
-		for (uint32_t iter = 0; iter < 10; ++iter)
+		// player walking:
 		{
-			if (remain == glm::vec3(0.0f))
-				break;
-			WalkPoint end;
-			float time;
-			walkmesh->walk_in_triangle(player.at, remain, &end, &time);
-			player.at = end;
-			if (time == 1.0f)
-			{
-				// finished within triangle:
-				remain = glm::vec3(0.0f);
-				break;
-			}
-			// some step remains:
-			remain *= (1.0f - time);
-			// try to step over edge:
-			glm::quat rotation;
-			if (walkmesh->cross_edge(player.at, &end, &rotation))
-			{
-				// stepped to a new triangle:
-				player.at = end;
-				// rotate step to follow surface:
-				remain = rotation * remain;
-			}
-			else
-			{
-				// ran into a wall, bounce / slide along it:
-				glm::vec3 const &a = walkmesh->vertices[player.at.indices.x];
-				glm::vec3 const &b = walkmesh->vertices[player.at.indices.y];
-				glm::vec3 const &c = walkmesh->vertices[player.at.indices.z];
-				glm::vec3 along = glm::normalize(b - a);
-				glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
-				glm::vec3 in = glm::cross(normal, along);
+			// combine inputs into a move:
+			constexpr float PlayerSpeed = 3.0f;
+			glm::vec2 move = glm::vec2(0.0f);
+			if (left.pressed && !right.pressed)
+				move.x = -1.0f;
+			if (!left.pressed && right.pressed)
+				move.x = 1.0f;
+			if (down.pressed && !up.pressed)
+				move.y = -1.0f;
+			if (!down.pressed && up.pressed)
+				move.y = 1.0f;
 
-				// check how much 'remain' is pointing out of the triangle:
-				float d = glm::dot(remain, in);
-				if (d < 0.0f)
+			// make it so that moving diagonally doesn't go faster:
+			if (move != glm::vec2(0.0f))
+				move = glm::normalize(move) * PlayerSpeed * elapsed;
+
+			// get move in world coordinate system:
+			glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
+
+			// using a for() instead of a while() here so that if walkpoint gets stuck in
+			//  some awkward case, code will not infinite loop:
+			for (uint32_t iter = 0; iter < 10; ++iter)
+			{
+				if (remain == glm::vec3(0.0f))
+					break;
+				WalkPoint end;
+				float time;
+				walkmesh->walk_in_triangle(player.at, remain, &end, &time);
+				player.at = end;
+				if (time == 1.0f)
 				{
-					// bounce off of the wall:
-					remain += (-1.25f * d) * in;
+					// finished within triangle:
+					remain = glm::vec3(0.0f);
+					break;
+				}
+				// some step remains:
+				remain *= (1.0f - time);
+				// try to step over edge:
+				glm::quat rotation;
+				if (walkmesh->cross_edge(player.at, &end, &rotation))
+				{
+					// stepped to a new triangle:
+					player.at = end;
+					// rotate step to follow surface:
+					remain = rotation * remain;
 				}
 				else
 				{
-					// if it's just pointing along the edge, bend slightly away from wall:
-					remain += 0.01f * d * in;
+					// ran into a wall, bounce / slide along it:
+					glm::vec3 const &a = walkmesh->vertices[player.at.indices.x];
+					glm::vec3 const &b = walkmesh->vertices[player.at.indices.y];
+					glm::vec3 const &c = walkmesh->vertices[player.at.indices.z];
+					glm::vec3 along = glm::normalize(b - a);
+					glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
+					glm::vec3 in = glm::cross(normal, along);
+
+					// check how much 'remain' is pointing out of the triangle:
+					float d = glm::dot(remain, in);
+					if (d < 0.0f)
+					{
+						// bounce off of the wall:
+						remain += (-1.25f * d) * in;
+					}
+					else
+					{
+						// if it's just pointing along the edge, bend slightly away from wall:
+						remain += 0.01f * d * in;
+					}
 				}
 			}
+
+			if (remain != glm::vec3(0.0f))
+			{
+				std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
+			}
+
+			// update player's position to respect walking:
+			player.transform->position = walkmesh->to_world_point(player.at);
+
+			{ // update player's rotation to respect local (smooth) up-vector:
+
+				glm::quat adjust = glm::rotation(
+					player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), // current up vector
+					walkmesh->to_world_smooth_normal(player.at)				  // smoothed up vector at walk location
+				);
+				player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
+			}
+
+			/*
+			glm::mat4x3 frame = camera->transform->make_local_to_parent();
+			glm::vec3 right = frame[0];
+			//glm::vec3 up = frame[1];
+			glm::vec3 forward = -frame[2];
+
+			camera->transform->position += move.x * right + move.y * forward;
+			*/
 		}
 
-		if (remain != glm::vec3(0.0f))
+		// bullet detect
+		// bullet->current_time += bullet_speed * elapsed;
+		// bullet->transform->position = current_Pos(enemy->position, player.transform->position, bullet->current_time);
+
+		// goal detect
+		if (distance(player.transform->position, goal->position) < 1.0f)
 		{
-			std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
+			win = true;
 		}
-
-		// update player's position to respect walking:
-		player.transform->position = walkmesh->to_world_point(player.at);
-
-		{ // update player's rotation to respect local (smooth) up-vector:
-
-			glm::quat adjust = glm::rotation(
-				player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), // current up vector
-				walkmesh->to_world_smooth_normal(player.at)				  // smoothed up vector at walk location
-			);
-			player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
-		}
-
-		/*
-		glm::mat4x3 frame = camera->transform->make_local_to_parent();
-		glm::vec3 right = frame[0];
-		//glm::vec3 up = frame[1];
-		glm::vec3 forward = -frame[2];
-
-		camera->transform->position += move.x * right + move.y * forward;
-		*/
 	}
 
-	// goal detect
-	if (distance(player.transform->position, goal->position) < 2)
-	{
-		std::cout << "win!" << std::endl;
-	}
 	// reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
@@ -335,6 +354,27 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 						glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + +0.1f * H + ofs, 0.0),
 						glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 						glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		if (win)
+		{
+			lines.draw_text("Win!",
+							glm::vec3(-aspect + 0.1f * 0.3f + 1085.0f / drawable_size.y, -1.0 + +0.1f * 0.3f + 746.0f / drawable_size.y, 0.0),
+							glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f),
+							glm::u8vec4(0xff, 0xff, 0x50, 0x00));
+			lines.draw_text("Win!",
+							glm::vec3(-aspect + 0.1f * 0.3f + 1088.0f / drawable_size.y, -1.0 + 0.1f * 0.3f + 748.0f / drawable_size.y, 0.0),
+							glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f),
+							glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+			lines.draw_text("Win!",
+							glm::vec3(-aspect + 0.1f * 0.3f + 1090.0f / drawable_size.y, -1.0 + +0.1f * 0.3f + 750.0f / drawable_size.y, 0.0),
+							glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f),
+							glm::u8vec4(0xff, 0x00, 0x50, 0x00));
+		}
 	}
 	GL_ERRORS();
+}
+glm::vec3 PlayMode::current_Pos(glm::vec3 origin_Pos, glm::vec3 final_Pos, float time)
+{
+	glm::vec3 dir = glm::normalize(final_Pos - origin_Pos);
+	glm::vec3 current_Pos = dir * (1 + time);
+	return current_Pos;
 }

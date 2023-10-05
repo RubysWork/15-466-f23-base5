@@ -17,7 +17,7 @@ struct PlayMode : Mode
 	virtual bool handle_event(SDL_Event const &, glm::uvec2 const &window_size) override;
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
-
+	glm::vec3 current_Pos(glm::vec3 origin_Pos, glm::vec3 final_Pos, float time);
 	//----- game state -----
 
 	// input tracking:
@@ -41,4 +41,15 @@ struct PlayMode : Mode
 	} player;
 
 	Scene::Transform *goal = nullptr;
+
+	typedef struct Bullet
+	{
+		Scene::Transform *transform = nullptr;
+		float current_time = 0.0f;
+	} Bullet;
+
+	// Bullet *bullet;
+	// Scene::Transform *enemy = nullptr;
+	float bullet_speed = 10;
+	bool win = false;
 };
