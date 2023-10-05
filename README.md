@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Walk Simulator
 
-Author: (TODO: your name)
+Author: Yue Wang
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: Just a simple walk simulator. I wanted to add enemy who can shoot the player, but I ran out of time to finish that.
 
 Screen Shot:
 
@@ -10,9 +10,10 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+Move: Hold mouse and press W/A/S/D
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Goal:
+Touch the yellow sphere
 
 This game was built with [NEST](NEST.md).
 
