@@ -16,12 +16,12 @@
 GLuint phonebank_meshes_for_lit_color_texture_program = 0;
 Load<MeshBuffer> phonebank_meshes(LoadTagDefault, []() -> MeshBuffer const *
 								  {
-	MeshBuffer const *ret = new MeshBuffer(data_path("phone-bank1.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("level.pnct"));
 	phonebank_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret; });
 
 Load<Scene> phonebank_scene(LoadTagDefault, []() -> Scene const *
-							{ return new Scene(data_path("phone-bank1.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
+							{ return new Scene(data_path("level.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
 											   {
 												   Mesh const &mesh = phonebank_meshes->lookup(mesh_name);
 
@@ -33,18 +33,25 @@ Load<Scene> phonebank_scene(LoadTagDefault, []() -> Scene const *
 												   drawable.pipeline.vao = phonebank_meshes_for_lit_color_texture_program;
 												   drawable.pipeline.type = mesh.type;
 												   drawable.pipeline.start = mesh.start;
-												   drawable.pipeline.count = mesh.count;
-											   }); });
+												   drawable.pipeline.count = mesh.count; }); });
 
 WalkMesh const *walkmesh = nullptr;
 Load<WalkMeshes> phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const *
 									  {
-	WalkMeshes *ret = new WalkMeshes(data_path("phone-bank1.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("level.w"));
 	walkmesh = &ret->lookup("WalkMesh");
 	return ret; });
 
 PlayMode::PlayMode() : scene(*phonebank_scene)
 {
+	// get pointers to objects
+	for (auto &transform : scene.transforms)
+	{
+		if (transform.name == "Goal")
+		{
+			goal = &transform;
+		}
+	}
 	// create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
@@ -263,6 +270,11 @@ void PlayMode::update(float elapsed)
 		*/
 	}
 
+	// goal detect
+	if (distance(player.transform->position, goal->position) < 1)
+	{
+		std::cout << "win!" << std::endl;
+	}
 	// reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
