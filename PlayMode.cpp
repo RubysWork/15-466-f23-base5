@@ -271,7 +271,7 @@ void PlayMode::update(float elapsed)
 	}
 
 	// goal detect
-	if (distance(player.transform->position, goal->position) < 1)
+	if (distance(player.transform->position, goal->position) < 2)
 	{
 		std::cout << "win!" << std::endl;
 	}
