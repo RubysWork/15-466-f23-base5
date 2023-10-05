@@ -59,7 +59,7 @@ glm::vec3 barycentric_weights(glm::vec3 const &a, glm::vec3 const &b, glm::vec3 
 
 	float denominator = d00 * d11 - d01 * d01;
 	float v = (d11 * d20 - d01 * d21) / denominator;
-	float w = (d11 * d20 - d01 * d21) / denominator;
+	float w = (d00 * d21 - d01 * d20) / denominator;
 
 	return glm::vec3(1.0f - v - w, v, w);
 
@@ -176,6 +176,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	float min_time = std::numeric_limits<float>::infinity();
 	unsigned int min_coord = (unsigned int)-1;
 
+	// coord:index, d:position on mesh,s:weight
 	auto detect_edge = [&min_time, &min_coord](const unsigned int coord, const float d, const float s)
 	{
 		if (d > 0.0)
@@ -183,8 +184,8 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 		float time = -s / (d - s);
 		// assert(time > 0.0f);
 		std::cout << "time1:" << time << std::endl;
-		if (time > 1.0f)
-			time = 1.0f;
+		// if (time > 1.0f)
+		// 	time = 1.0f;
 		if (time < min_time)
 		{
 			min_time = time;
@@ -193,14 +194,14 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	};
 
 	detect_edge((unsigned int)0, bw_dest.x, start.weights.x);
-	detect_edge((unsigned int)1, bw_dest.x, start.weights.y);
-	detect_edge((unsigned int)2, bw_dest.x, start.weights.z);
+	detect_edge((unsigned int)1, bw_dest.y, start.weights.y);
+	detect_edge((unsigned int)2, bw_dest.z, start.weights.z);
 
 	time = std::min(1.0f, min_time);
 
 	// assert(time > 0.0f);
-	if (time > 1.0f)
-		time = 1.0f;
+	// if (time > 1.0f)
+	// 	time = 1.0f;
 	std::cout << "time2:" << time << std::endl;
 	glm::vec3 weights = start.weights + time * (bw_dest - start.weights);
 
@@ -277,7 +278,7 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
 		glm::vec3 end_normal = glm::normalize(glm::cross(end_b - end_a, end_c - end_a));
 
 		std::cout << "rotation:" << rotation.x << "," << rotation.y << "," << rotation.z << std::endl;
-		rotation = glm::rotation(start_normal, end_normal);
+		rotation = glm::rotation(end_normal, start_normal);
 		return true;
 	}
 	else
