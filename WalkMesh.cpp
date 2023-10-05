@@ -183,9 +183,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 			return;
 		float time = -s / (d - s);
 		// assert(time > 0.0f);
-		std::cout << "time1:" << time << std::endl;
-		// if (time > 1.0f)
-		// 	time = 1.0f;
+
 		if (time < min_time)
 		{
 			min_time = time;
@@ -200,9 +198,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	time = std::min(1.0f, min_time);
 
 	// assert(time > 0.0f);
-	// if (time > 1.0f)
-	// 	time = 1.0f;
-	std::cout << "time2:" << time << std::endl;
+
 	glm::vec3 weights = start.weights + time * (bw_dest - start.weights);
 
 	switch (min_coord)
